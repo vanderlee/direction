@@ -13,22 +13,79 @@
 ;(function($, undefined) {
 	"use strict";
 
+	$.direction = new function() {
+		this.styles = {
+		'carat':		{	'c':	'ui-icon-radio-on',
+							'n':	'ui-icon-carat-1-n',
+							'e':	'ui-icon-carat-1-e',
+							's':	'ui-icon-carat-1-s',
+							'w':	'ui-icon-carat-1-w',
+							'nw':	'ui-icon-carat-1-nw',
+							'ne':	'ui-icon-carat-1-ne',
+							'sw':	'ui-icon-carat-1-sw',
+							'se':	'ui-icon-carat-1-se'
+						},
+		'triangle':		{	'c':	'ui-icon-bullet',
+							'n':	'ui-icon-triangle-1-n',
+							'e':	'ui-icon-triangle-1-e',
+							's':	'ui-icon-triangle-1-s',
+							'w':	'ui-icon-triangle-1-w',
+							'nw':	'ui-icon-triangle-1-nw',
+							'ne':	'ui-icon-triangle-1-ne',
+							'sw':	'ui-icon-triangle-1-sw',
+							'se':	'ui-icon-triangle-1-se'
+						},
+		'arrow':		{	'c':	'ui-icon-arrow-4',
+							'n':	'ui-icon-arrow-1-n',
+							'e':	'ui-icon-arrow-1-e',
+							's':	'ui-icon-arrow-1-s',
+							'w':	'ui-icon-arrow-1-w',
+							'nw':	'ui-icon-arrow-1-nw',
+							'ne':	'ui-icon-arrow-1-ne',
+							'sw':	'ui-icon-arrow-1-sw',
+							'se':	'ui-icon-arrow-1-se'
+						},
+		'arrowthick':	{	'c':	'ui-icon-icon-plus',
+							'n':	'ui-icon-arrowthick-1-n',
+							'e':	'ui-icon-arrowthick-1-e',
+							's':	'ui-icon-arrowthick-1-s',
+							'w':	'ui-icon-arrowthick-1-w',
+							'nw':	'ui-icon-arrowthick-1-nw',
+							'ne':	'ui-icon-arrowthick-1-ne',
+							'sw':	'ui-icon-arrowthick-1-sw',
+							'se':	'ui-icon-arrowthick-1-se'
+						},
+		'edgethick':	{	'c':	'ui-icon-radio-on',
+							'n':	'ui-icon-arrowthickstop-1-n',
+							'e':	'ui-icon-arrowthickstop-1-e',
+							's':	'ui-icon-arrowthickstop-1-s',
+							'w':	'ui-icon-arrowthickstop-1-w',
+							'nw':	'ui-icon-carat-1-nw',
+							'ne':	'ui-icon-carat-1-ne',
+							'sw':	'ui-icon-carat-1-sw',
+							'se':	'ui-icon-carat-1-se'
+						}
+	};
+	}();
+	
     $.widget("vanderlee.direction", {
 		options: {
-            values: {}
+			disable:	null,	// array of directions to appear disabled
+			hide:		null,	// array of directions to be hidden from view
+			style:		null,	// 'carat', 'triangle', 'arrow', 'arrowthick' or an object
+            values:		null	// object with values to match directions
         },
         
         _create: function () {
 			var that = this,
 				val;
 
-            that.widgetEventPrefix = 'direction';
-
             that.element.hide();
+
+            that.widgetEventPrefix	= 'direction';
+            that.buttons			= that._generate();
             
-            that.buttons = that._generate();
-            
-            $('.ui-button', that.buttons).click(function() {
+            $('.ui-button.ui-state-default', that.buttons).click(function() {
                 $('.ui-state-active', that.buttons).not(this).removeClass('ui-state-active');
                 $(this).toggleClass('ui-state-active');
                 
@@ -44,7 +101,7 @@
         },
         
         _getVal: function(value) {
-            return typeof this.options.values[value] === 'undefined' ? value : this.options.values[value];
+            return (this.options.values && (typeof this.options.values[value] !== 'undefined')) ? this.options.values[value] : value;
         },
         
         _find: function(value, array) {
@@ -59,28 +116,39 @@
         },
         
         _generate_row: function(items) {
-            var that = this,
-                val = that.element.val(),
-                index = that._find(val, that.options.values),
-                value = index !== -1 ? index : val,
-                row = $('<div/>');
-            
-            $.each(items, function() {							
-                $('<span class="ui-button ui-state-default ui-corner-all '+(this === value ? 'ui-state-active' : '')+'" data-value="'+this+'"/>')
-					.html('<span class="ui-icon '+(this === 'c' ? 'ui-icon-arrow-4' : 'ui-icon-arrow-1-' + this)+'"/>')
-					.appendTo(row);				
+            var that	= this,
+                val		= that.element.val(),
+                index	= that.options.values ? that._find(val, that.options.values) : -1,
+                //index	= that.options.values ? that._find(val, that.options.values) : -1,
+                value	= index !== -1 ? index : val,
+				style	= $.isPlainObject(that.options.style)? that.options.style
+						: that.options.style && $.direction.styles[that.options.style] ? $.direction.styles[that.options.style]
+						: $.direction.styles['arrow'],
+				html	= '',
+				hidden	= 0,
+				state;
+
+            $.each(items, function() {
+				if (that.options.hide && $.inArray(this, that.options.hide) >= 0) {
+					++hidden;
+					html += '<span style="display:table-cell" class="ui-direction-hidden"/>';
+				} else {
+					state = that.options.disable && $.inArray(this, that.options.disable) >= 0 ? 'ui-state-disabled' : 'ui-state-default';
+					html += '<span style="display:table-cell" class="ui-direction-button ui-button '+state+' ui-corner-all '+(this === value ? 'ui-state-active' : '')+'" data-value="'+this+'">'
+						+'<span class="ui-icon '+style[this]+'"/>'
+						+'</span>';
+				}
             });
-                
-            return row;
+
+            return hidden >= items.length ? '' : '<span style="display:table-row">'+html+'</span>';
         },
         
         _generate: function() {
-            var table = $('<div/>').insertAfter(this.element);
-                
-            this._generate_row(['nw', 'n', 'ne']).appendTo(table);            
-            this._generate_row(['w', 'c', 'e']).appendTo(table);            
-            this._generate_row(['sw', 's', 'se']).appendTo(table);
-            return table;
+			return $(	'<span style="display:inline-block;" class="ui-direction">'
+					+	this._generate_row(['nw', 'n', 'ne'])
+					+	this._generate_row(['w', 'c', 'e'])
+					+	this._generate_row(['sw', 's', 'se'])
+					+	'</span>').insertAfter(this.element);
         }
     });
 }(jQuery));
