@@ -91,8 +91,7 @@
                 
 				val = $(this).is('.ui-state-active') ? that._getVal($(this).data('value')) : '';
 				if (that.element.val() !== val) {
-					that.element.val('');
-					that.element.change();
+					that.element.val(val).change();
 				}
             });
 
